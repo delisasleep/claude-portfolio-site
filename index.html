@@ -385,7 +385,7 @@
         <p>Placeholder result/metric. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores.</p>
       </div>
 
-      <div class="detail-links">
+      <div class="detail-links" id="detailLinks">
         <a class="btn btn-primary" href="#" onclick="return false">Live demo ↗</a>
         <a class="btn btn-ghost" href="#" onclick="return false">View code ↗</a>
       </div>
@@ -639,7 +639,13 @@ function openDetail(title){
   const p = PROJECTS.find(x=>x.t===title) || PROJECTS[0];
   document.getElementById("detailTitle").textContent = p.t;
   document.getElementById("detailCrumb").textContent = p.t;
-  document.getElementById("detailStack").textContent = p.tags.join(", ");
+  document.getElementById("detailSummary").textContent = p.d || "";
+  document.getElementById("detailStack").textContent = (p.tags && p.tags.length) ? p.tags.join(", ") : "—";
+  const links = [];
+  if(p.live)  links.push(`<a class="btn btn-primary" href="${p.live}" target="_blank" rel="noopener">Live demo ↗</a>`);
+  if(p.repo)  links.push(`<a class="btn btn-ghost" href="${p.repo}" target="_blank" rel="noopener">View code ↗</a>`);
+  if(p.figma) links.push(`<a class="btn btn-ghost" href="${p.figma}" target="_blank" rel="noopener">Figma ↗</a>`);
+  document.getElementById("detailLinks").innerHTML = links.join("") || `<span style="color:var(--muted);font-size:.9rem">Links coming soon.</span>`;
   go("detail");
 }
 
@@ -770,20 +776,26 @@ nlForm.addEventListener("submit", async e=>{
 /* ================= Strapi hydration ================= */
 function mapProject(raw){
   const a = attrs(raw);
-  const t = pick(a,["Title","title","Name","ProjectName","name"]) || "Untitled project";
-  const d = pick(a,["Description","description","Summary","summary","Excerpt","excerpt"]) || "";
+  const t = pick(a,["ProjectName","Title","title","Name","name"]) || "Untitled project";
+  const d = pick(a,["ProjectDescription","Description","description","Summary","summary","Excerpt","excerpt"]) || "";
   let tags = pick(a,["Tags","tags","Tech","Technologies","Stack"]) || [];
   if(typeof tags==="string") tags = tags.split(",").map(s=>s.trim()).filter(Boolean);
   if(!Array.isArray(tags)) tags = [];
-  const imgField = a.Image||a.image||a.Cover||a.cover||a.ProjectImg||a.Thumbnail||a.thumbnail;
-  return { t, d, tags, cat:"web", img: mediaUrl(imgField) };
+  const imgField = a.ProjectImage||a.ProjectImg||a.Image||a.image||a.Cover||a.cover||a.Thumbnail||a.thumbnail;
+  return {
+    t, d, tags, cat:"web",
+    img: mediaUrl(imgField),
+    live:  pick(a,["ProjectLiveURL","LiveURL","liveUrl","url","URL"]),
+    repo:  pick(a,["GitHubURL","GithubURL","githubUrl","RepoURL","repo"]),
+    figma: pick(a,["FigmaURL","figmaUrl"])
+  };
 }
 function mapSocial(raw){
   const a = attrs(raw);
   return {
-    name: pick(a,["Platform","platform","Name","name","Title"]) || "Link",
-    url:  pick(a,["URL","Url","url","Link","link"]) || "#",
-    icon: mediaUrl(a.Icon||a.icon||a.Image||a.image)
+    name: pick(a,["SocialName","Platform","platform","Name","name","Title"]) || "Link",
+    url:  pick(a,["SocialURL","URL","Url","url","Link","link"]) || "#",
+    icon: pick(a,["SocialIconURL"]) || mediaUrl(a.SocialIcon||a.Icon||a.icon||a.Image||a.image)
   };
 }
 function applyAbout(data){
